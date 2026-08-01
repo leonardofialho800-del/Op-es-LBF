@@ -123,7 +123,7 @@ document.getElementById("saida").textContent=dados.resultado || dados.erro;
 
 @app.route("/")
 def home():
-    return render_template_string(HTML)
+    return "<h1>VERSÃO 2.0 - TESTE</h1>"
 
 @app.route("/gerar-copy", methods=["POST"])
 def gerar():
