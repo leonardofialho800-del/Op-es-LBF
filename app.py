@@ -22,7 +22,7 @@ HTML_PAGE = """
         button { background-color: #1a73e8; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
         button:active { background-color: #1557b0; }
         .result-box { margin-top: 20px; background: #f8f9fa; border: 1px solid #e1e4e8; padding: 16px; border-radius: 8px; white-space: pre-wrap; font-size: 15px; line-height: 1.5; }
-        .error-box { margin-top: 20px; background: #fde8e8; border: 1px solid #f8b4b4; color: #c53030; padding: 16px; border-radius: 8px; font-size: 14px; display: none; }
+        .error-box { margin-top: 20px; background: #fde8e8; border: 1px solid #f8b4b4; color: #c53030; padding: 16px; border-radius: 8px; font-size: 14px; display: none; word-break: break-all; }
         .loading { text-align: center; color: #666; font-style: italic; display: none; margin-top: 15px; }
     </style>
 </head>
@@ -66,7 +66,7 @@ HTML_PAGE = """
                     resultadoDiv.innerText = data.copy_gerada;
                     resultadoDiv.style.display = 'block';
                 } else {
-                    erroDiv.innerText = 'Erro detalhado: ' + (data.mensagem || 'Desconhecido');
+                    erroDiv.innerText = 'Erro: ' + (data.mensagem || 'Desconhecido');
                     erroDiv.style.display = 'block';
                 }
             } catch (error) {
@@ -92,7 +92,6 @@ def gerar_copy():
         
         prompt = f"Escreva uma legenda persuasiva e profissional para o Instagram sobre o seguinte tema: {tema}. Inclua 5 hashtags."
         
-        # Chamada direta via API REST do Gemini utilizando a chave atual
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         payload = {
             "contents": [{
@@ -103,8 +102,13 @@ def gerar_copy():
         resposta = requests.post(url, json=payload)
         resultado_json = resposta.json()
         
-        # Extraindo o texto da resposta da API
-        texto_gerado = resultado_json['candidates'][0]['content']['parts'][0]['text']
+        # Validação segura para evitar qualquer erro de chave ausente
+        if "candidates" in resultado_json:
+            texto_gerado = resultado_json['candidates'][0]['content']['parts'][0]['text']
+        elif "error" in resultado_json:
+            return jsonify({"status": "erro", "mensagem": resultado_json['error'].get('message', 'Erro na API do Google')}), 500
+        else:
+            return jsonify({"status": "erro", "mensagem": str(resultado_json)}), 500
         
         return jsonify({
             "status": "sucesso", 
