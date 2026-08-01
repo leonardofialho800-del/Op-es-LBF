@@ -2,8 +2,6 @@ import os
 import requests
 from flask import Flask, request, jsonify, render_template_string
 
-api_key = os.environ.get("GEMINI_API_KEY")
-
 app = Flask(__name__)
 
 HTML_PAGE = """
@@ -87,26 +85,34 @@ def home():
 @app.route('/gerar-copy', methods=['POST'])
 def gerar_copy():
     try:
+        # Pega a chave de forma segura direto do servidor do Render
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return jsonify({"status": "erro", "mensagem": "Chave GEMINI_API_KEY não configurada no Render."}), 500
+
         dados = request.json
         tema = dados.get('tema', 'Sem tema')
         
         prompt = f"Escreva uma legenda persuasiva e profissional para o Instagram sobre o seguinte tema: {tema}. Inclua 5 hashtags."
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
         payload = {
             "contents": [{
                 "parts": [{"text": prompt}]
             }]
         }
         
-        resposta = requests.post(url, json=payload)
+        resposta = requests.post(url, headers=headers, json=payload)
         resultado_json = resposta.json()
         
-        # Validação segura para evitar qualquer erro de chave ausente
         if "candidates" in resultado_json:
             texto_gerado = resultado_json['candidates'][0]['content']['parts'][0]['text']
         elif "error" in resultado_json:
-            return jsonify({"status": "erro", "mensagem": resultado_json['error'].get('message', 'Erro na API do Google')}), 500
+            return jsonify({"status": "erro", "mensagem": resultado_json['error'].get('message', 'Erro na API')}), 500
         else:
             return jsonify({"status": "erro", "mensagem": str(resultado_json)}), 500
         
