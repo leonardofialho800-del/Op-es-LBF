@@ -1,13 +1,8 @@
 import os
+import requests
 from flask import Flask, request, jsonify, render_template_string
-import google.generativeai as genai
 
-# Configuração da IA
 api_key = os.environ.get("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
-
-modelo_ia = genai.GenerativeModel('gemini-1.5-flash')
 
 app = Flask(__name__)
 
@@ -95,13 +90,26 @@ def gerar_copy():
         dados = request.json
         tema = dados.get('tema', 'Sem tema')
         
-        instrucao_para_ia = f"Escreva uma legenda persuasiva e profissional para o Instagram sobre o seguinte tema: {tema}. Inclua 5 hashtags."
-        resposta_da_ia = modelo_ia.generate_content(instrucao_para_ia)
+        prompt = f"Escreva uma legenda persuasiva e profissional para o Instagram sobre o seguinte tema: {tema}. Inclua 5 hashtags."
+        
+        # Chamada direta via API REST do Gemini utilizando a chave atual
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
+        resposta = requests.post(url, json=payload)
+        resultado_json = resposta.json()
+        
+        # Extraindo o texto da resposta da API
+        texto_gerado = resultado_json['candidates'][0]['content']['parts'][0]['text']
         
         return jsonify({
             "status": "sucesso", 
             "tema_pedido": tema,
-            "copy_gerada": resposta_da_ia.text
+            "copy_gerada": texto_gerado
         })
     except Exception as e:
         return jsonify({
@@ -111,4 +119,3 @@ def gerar_copy():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
-
