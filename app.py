@@ -8,124 +8,197 @@ HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robô de Copywriting - LBF</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 500px; margin: 20px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: #1a73e8; margin-bottom: 20px; }
-        label { font-weight: bold; display: block; margin-bottom: 8px; }
-        input[type="text"] { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 16px; }
-        button { background-color: #1a73e8; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        button:active { background-color: #1557b0; }
-        .result-box { margin-top: 20px; background: #f8f9fa; border: 1px solid #e1e4e8; padding: 16px; border-radius: 8px; white-space: pre-wrap; font-size: 15px; line-height: 1.5; }
-        .error-box { margin-top: 20px; background: #fde8e8; border: 1px solid #f8b4b4; color: #c53030; padding: 16px; border-radius: 8px; font-size: 14px; display: none; word-break: break-all; }
-        .loading { text-align: center; color: #666; font-style: italic; display: none; margin-top: 15px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robô de Copywriting</title>
+
+<style>
+body{
+font-family:Arial,sans-serif;
+background:#f4f4f4;
+margin:0;
+padding:20px;
+}
+
+.container{
+max-width:600px;
+margin:auto;
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 0 10px rgba(0,0,0,.1);
+}
+
+input{
+width:100%;
+padding:12px;
+margin:10px 0;
+font-size:16px;
+}
+
+button{
+width:100%;
+padding:12px;
+background:#1976d2;
+color:white;
+border:none;
+border-radius:6px;
+font-size:16px;
+cursor:pointer;
+}
+
+button:hover{
+background:#125ea8;
+}
+
+#resultado{
+margin-top:20px;
+white-space:pre-wrap;
+background:#f7f7f7;
+padding:15px;
+border-radius:8px;
+display:none;
+}
+</style>
+
 </head>
+
 <body>
-    <div class="container">
-        <h2>🤖 Robô de Vendas & Copy</h2>
-        <label for="tema">Qual o tema do seu produto ou post?</label>
-        <input type="text" id="tema" placeholder="Ex: Tênis esportivo em promoção">
-        <button onclick="gerarCopy()">Gerar Legenda com IA</button>
-        <div id="loading" class="loading">Criando sua copy magnética... ⏳</div>
-        <div id="resultado" class="result-box" style="display:none;"></div>
-        <div id="erro" class="error-box"></div>
-    </div>
 
-    <script>
-        async function gerarCopy() {
-            const tema = document.getElementById('tema').value;
-            const resultadoDiv = document.getElementById('resultado');
-            const erroDiv = document.getElementById('erro');
-            const loadingDiv = document.getElementById('loading');
-            
-            if (!tema) {
-                alert('Por favor, digite um tema!');
-                return;
-            }
+<div class="container">
 
-            loadingDiv.style.display = 'block';
-            resultadoDiv.style.display = 'none';
-            erroDiv.style.display = 'none';
+<h2>🤖 Robô de Vendas com IA</h2>
 
-            try {
-                const response = await fetch('/gerar-copy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tema: tema })
-                });
-                const data = await response.json();
-                
-                loadingDiv.style.display = 'none';
-                if (response.ok && data.status === 'sucesso') {
-                    resultadoDiv.innerText = data.copy_gerada;
-                    resultadoDiv.style.display = 'block';
-                } else {
-                    erroDiv.innerText = 'Erro: ' + (data.mensagem || 'Desconhecido');
-                    erroDiv.style.display = 'block';
-                }
-            } catch (error) {
-                loadingDiv.style.display = 'none';
-                erroDiv.innerText = 'Erro de conexão com o servidor.';
-                erroDiv.style.display = 'block';
-            }
-        }
-    </script>
+<input
+id="tema"
+placeholder="Digite o tema...">
+
+<button onclick="gerarCopy()">
+
+Gerar Copy
+
+</button>
+
+<div id="resultado"></div>
+
+</div>
+
+<script>
+
+async function gerarCopy(){
+
+const tema=document.getElementById("tema").value;
+
+const resposta=await fetch("/gerar-copy",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+tema:tema
+})
+
+});
+
+const dados=await resposta.json();
+
+document.getElementById("resultado").style.display="block";
+
+if(dados.status=="sucesso"){
+
+document.getElementById("resultado").innerText=dados.copy;
+
+}else{
+
+document.getElementById("resultado").innerText=dados.mensagem;
+
+}
+
+}
+
+</script>
+
 </body>
+
 </html>
 """
 
-@app.route('/', methods=['GET'])
+@app.route("/")
 def home():
     return render_template_string(HTML_PAGE)
 
-@app.route('/gerar-copy', methods=['POST'])
-def gerar_copy():
-    try:
-        # Pega a chave de forma segura direto do servidor do Render
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            return jsonify({"status": "erro", "mensagem": "Chave GEMINI_API_KEY não configurada no Render."}), 500
 
-        dados = request.json
-        tema = dados.get('tema', 'Sem tema')
-        
-        prompt = f"Escreva uma legenda persuasiva e profissional para o Instagram sobre o seguinte tema: {tema}. Inclua 5 hashtags."
-        
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }]
-        }
-        
-        resposta = requests.post(url, headers=headers, json=payload)
-        resultado_json = resposta.json()
-        
-        if "candidates" in resultado_json:
-            texto_gerado = resultado_json['candidates'][0]['content']['parts'][0]['text']
-        elif "error" in resultado_json:
-            return jsonify({"status": "erro", "mensagem": resultado_json['error'].get('message', 'Erro na API')}), 500
-        else:
-            return jsonify({"status": "erro", "mensagem": str(resultado_json)}), 500
-        
+@app.route("/gerar-copy", methods=["POST"])
+def gerar():
+
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
         return jsonify({
-            "status": "sucesso", 
-            "tema_pedido": tema,
-            "copy_gerada": texto_gerado
+            "status":"erro",
+            "mensagem":"A variável GEMINI_API_KEY não está configurada no Render."
         })
-    except Exception as e:
-        return jsonify({
-            "status": "erro",
-            "mensagem": str(e)
-        }), 500
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    tema = request.json.get("tema","")
+
+    prompt = f"""
+Crie uma legenda altamente persuasiva para Instagram.
+
+Tema:
+
+{tema}
+
+Inclua:
+
+• Emoji
+• CTA
+• 5 hashtags
+"""
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+
+    payload = {
+        "contents":[
+            {
+                "parts":[
+                    {
+                        "text":prompt
+                    }
+                ]
+            }
+        ]
+    }
+
+    resposta = requests.post(url,json=payload)
+
+    if resposta.status_code != 200:
+
+        return jsonify({
+
+            "status":"erro",
+
+            "mensagem":resposta.text
+
+        })
+
+    dados = resposta.json()
+
+    texto = dados["candidates"][0]["content"]["parts"][0]["text"]
+
+    return jsonify({
+
+        "status":"sucesso",
+
+        "copy":texto
+
+    })
+
+
+if __name__ == "__main__":
+
+    porta=int(os.environ.get("PORT",10000))
+
+    app.run(host="0.0.0.0",port=porta)
