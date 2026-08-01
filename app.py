@@ -1,64 +1,66 @@
 import os
-import requests
+
 from flask import Flask, request, jsonify, render_template_string
+from google import genai
 
 app = Flask(__name__)
 
-HTML_PAGE = """
+HTML = """
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Robô de Copywriting</title>
+<title>Robô de Vendas IA</title>
 
 <style>
+
 body{
-font-family:Arial,sans-serif;
-background:#f4f4f4;
-margin:0;
-padding:20px;
+font-family:Arial;
+background:#f5f5f5;
+padding:25px;
 }
 
 .container{
-max-width:600px;
+
+max-width:650px;
 margin:auto;
 background:white;
-padding:20px;
+padding:25px;
 border-radius:10px;
 box-shadow:0 0 10px rgba(0,0,0,.1);
+
 }
 
 input{
+
 width:100%;
 padding:12px;
-margin:10px 0;
 font-size:16px;
+
 }
 
 button{
+
 width:100%;
-padding:12px;
-background:#1976d2;
+padding:14px;
+margin-top:15px;
+background:#1565C0;
 color:white;
 border:none;
-border-radius:6px;
 font-size:16px;
 cursor:pointer;
+
 }
 
-button:hover{
-background:#125ea8;
-}
+pre{
 
-#resultado{
-margin-top:20px;
-white-space:pre-wrap;
-background:#f7f7f7;
+background:#eee;
 padding:15px;
 border-radius:8px;
-display:none;
+white-space:pre-wrap;
+
 }
+
 </style>
 
 </head>
@@ -69,23 +71,22 @@ display:none;
 
 <h2>🤖 Robô de Vendas com IA</h2>
 
-<input
-id="tema"
-placeholder="Digite o tema...">
+<input id="tema"
+placeholder="Digite o tema">
 
-<button onclick="gerarCopy()">
+<button onclick="gerar()">
 
 Gerar Copy
 
 </button>
 
-<div id="resultado"></div>
+<pre id="saida"></pre>
 
 </div>
 
 <script>
 
-async function gerarCopy(){
+async function gerar(){
 
 const tema=document.getElementById("tema").value;
 
@@ -94,28 +95,22 @@ const resposta=await fetch("/gerar-copy",{
 method:"POST",
 
 headers:{
+
 "Content-Type":"application/json"
+
 },
 
 body:JSON.stringify({
-tema:tema
+
+tema
+
 })
 
 });
 
 const dados=await resposta.json();
 
-document.getElementById("resultado").style.display="block";
-
-if(dados.status=="sucesso"){
-
-document.getElementById("resultado").innerText=dados.copy;
-
-}else{
-
-document.getElementById("resultado").innerText=dados.mensagem;
-
-}
+document.getElementById("saida").textContent=dados.resultado || dados.erro;
 
 }
 
@@ -128,76 +123,62 @@ document.getElementById("resultado").innerText=dados.mensagem;
 
 @app.route("/")
 def home():
-    return render_template_string(HTML_PAGE)
-
+    return render_template_string(HTML)
 
 @app.route("/gerar-copy", methods=["POST"])
 def gerar():
 
-    api_key = os.getenv("GEMINI_API_KEY")
+    try:
 
-    if not api_key:
-        return jsonify({
-            "status":"erro",
-            "mensagem":"A variável GEMINI_API_KEY não está configurada no Render."
-        })
+        api_key=os.environ["GEMINI_API_KEY"]
 
-    tema = request.json.get("tema","")
+        client=genai.Client(api_key=api_key)
 
-    prompt = f"""
-Crie uma legenda altamente persuasiva para Instagram.
+        tema=request.json.get("tema","")
+
+        prompt=f"""
+
+Crie uma legenda extremamente persuasiva para Instagram.
 
 Tema:
 
 {tema}
 
-Inclua:
+A resposta deve conter:
 
-• Emoji
+• Gancho forte
+
+• Emojis
+
 • CTA
+
 • 5 hashtags
+
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        resposta=client.models.generate_content(
 
-    payload = {
-        "contents":[
-            {
-                "parts":[
-                    {
-                        "text":prompt
-                    }
-                ]
-            }
-        ]
-    }
+            model="gemini-2.5-flash",
 
-    resposta = requests.post(url,json=payload)
+            contents=prompt
 
-    if resposta.status_code != 200:
+        )
 
         return jsonify({
 
-            "status":"erro",
-
-            "mensagem":resposta.text
+            "resultado":resposta.text
 
         })
 
-    dados = resposta.json()
+    except Exception as e:
 
-    texto = dados["candidates"][0]["content"]["parts"][0]["text"]
+        return jsonify({
 
-    return jsonify({
+            "erro":str(e)
 
-        "status":"sucesso",
+        })
 
-        "copy":texto
-
-    })
-
-
-if __name__ == "__main__":
+if __name__=="__main__":
 
     porta=int(os.environ.get("PORT",10000))
 
