@@ -1,10 +1,9 @@
 import os
 from flask import Flask, request, jsonify, render_template_string
-import google.generativeai as genai
+from google import genai
 
-# Chave oficial do AI Studio integrada com segurança
 API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyBrhs-bTh4gyx35cQEvGYfmg1oa2jqhbKg")
-genai.configure(api_key=API_KEY)
+client = genai.Client(api_key=API_KEY)
 
 app = Flask(__name__)
 
@@ -25,7 +24,7 @@ HTML_PAGE = """
         button:hover { background-color: #1557b0; }
         .result-box { margin-top: 20px; background: #f8f9fa; border: 1px solid #e1e4e8; padding: 16px; border-radius: 8px; white-space: pre-wrap; font-size: 15px; line-height: 1.5; }
         .error-box { margin-top: 20px; background: #fde8e8; border: 1px solid #f8b4b4; color: #c53030; padding: 16px; border-radius: 8px; font-size: 14px; display: none; word-break: break-all; }
-        .loading { text-align: center; color: #666; font-style: italic; display: none; margin-top: 15px; }
+        .loading { text-align: center; color: #d97706; font-weight: 500; font-size: 14px; display: none; margin-top: 15px; background: #fef3c7; padding: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
@@ -34,7 +33,7 @@ HTML_PAGE = """
         <label for="tema">Qual o tema do seu produto ou post?</label>
         <input type="text" id="tema" placeholder="Ex: Tênis esportivo em promoção">
         <button onclick="gerarCopy()">Gerar Legenda com IA</button>
-        <div id="loading" class="loading">Criando sua copy magnética... ⏳</div>
+        <div id="loading" class="loading">⏳ Gerando sua copy com Gemini 2.5 Flash...</div>
         <div id="resultado" class="result-box" style="display:none;"></div>
         <div id="erro" class="error-box"></div>
     </div>
@@ -95,14 +94,17 @@ def gerar_copy():
         if not tema:
             return jsonify({"status": "erro", "mensagem": "O tema não pode estar vazio."}), 400
             
-        modelo = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"Escreva uma legenda persuasiva e profissional para o Instagram sobre o seguinte tema: {tema}. Inclua 5 hashtags."
-        resposta = modelo.generate_content(prompt)
+        
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
         
         return jsonify({
             "status": "sucesso",
             "tema_pedido": tema,
-            "copy_gerada": resposta.text
+            "copy_gerada": response.text
         })
     except Exception as e:
         return jsonify({
